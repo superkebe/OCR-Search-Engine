@@ -1,0 +1,75 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 2078 >>
+stream
+BT /F2 20 Tf 50.0 732.0 Td (Northwind Web Studio) Tj ET
+BT /F2 28 Tf 464.0 732.0 Td (INVOICE) Tj ET
+BT /F2 11 Tf 435.5 704.0 Td (SAMPLE - fictional data) Tj ET
+BT /F1 11 Tf 50.0 710.0 Td (220 High Street, Suite 4) Tj ET
+BT /F1 11 Tf 50.0 695.0 Td (Columbus, OH 43215) Tj ET
+BT /F1 11 Tf 50.0 680.0 Td (billing@northwind.example.com) Tj ET
+BT /F2 11 Tf 50.0 632.0 Td (Bill to:) Tj ET
+BT /F1 11 Tf 50.0 616.0 Td (Isiaka's Demo Company) Tj ET
+BT /F1 11 Tf 50.0 601.0 Td (75 Broad Street) Tj ET
+BT /F1 11 Tf 50.0 586.0 Td (Columbus, OH 43215) Tj ET
+BT /F2 11 Tf 340.0 632.0 Td (Invoice number:) Tj ET
+BT /F1 11 Tf 496.0 632.0 Td (INV-2026-118) Tj ET
+BT /F2 11 Tf 340.0 616.0 Td (Invoice date:) Tj ET
+BT /F1 11 Tf 474.0 616.0 Td (November 6, 2026) Tj ET
+BT /F2 11 Tf 340.0 600.0 Td (Payment due:) Tj ET
+BT /F1 11 Tf 474.0 600.0 Td (December 6, 2026) Tj ET
+BT /F2 11 Tf 50.0 532.0 Td (Description) Tj ET
+BT /F2 11 Tf 353.5 532.0 Td (Qty) Tj ET
+BT /F2 11 Tf 405.0 532.0 Td (Unit price) Tj ET
+BT /F2 11 Tf 529.0 532.0 Td (Amount) Tj ET
+BT /F1 11 Tf 50.0 512.0 Td (Website design \(5 pages\)) Tj ET
+BT /F1 11 Tf 364.5 512.0 Td (1) Tj ET
+BT /F1 11 Tf 410.5 512.0 Td ($1,200.00) Tj ET
+BT /F1 11 Tf 512.5 512.0 Td ($1,200.00) Tj ET
+BT /F1 11 Tf 50.0 492.0 Td (Web hosting - 12 months) Tj ET
+BT /F1 11 Tf 359.0 492.0 Td (12) Tj ET
+BT /F1 11 Tf 427.0 492.0 Td ($15.00) Tj ET
+BT /F1 11 Tf 523.5 492.0 Td ($180.00) Tj ET
+BT /F1 11 Tf 50.0 472.0 Td (Logo revisions \(hours\)) Tj ET
+BT /F1 11 Tf 364.5 472.0 Td (3) Tj ET
+BT /F1 11 Tf 427.0 472.0 Td ($45.00) Tj ET
+BT /F1 11 Tf 523.5 472.0 Td ($135.00) Tj ET
+BT /F1 11 Tf 410.5 440.0 Td (Subtotal:) Tj ET
+BT /F1 11 Tf 512.5 440.0 Td ($1,515.00) Tj ET
+BT /F1 11 Tf 410.5 420.0 Td (Tax \(5%\):) Tj ET
+BT /F1 11 Tf 529.0 420.0 Td ($75.75) Tj ET
+BT /F2 11 Tf 405.0 400.0 Td (Total due:) Tj ET
+BT /F2 11 Tf 512.5 400.0 Td ($1,590.75) Tj ET
+BT /F1 10 Tf 50.0 360.0 Td (Payment terms: Net 30. Please include the invoice number with your payment.) Tj ET
+BT /F1 9 Tf 50.0 52.0 Td (This is a fictional sample document for testing. Not a real invoice.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000002381 00000 n 
+0000002478 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+2580
+%%EOF

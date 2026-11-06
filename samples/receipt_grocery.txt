@@ -1,0 +1,19 @@
+*** SAMPLE RECEIPT - fictional data ***
+GREEN VALLEY MARKET
+560 Valley Road, Westerville, OH 43081
+Date: 11/05/2026 6:15 PM   Register 3
+----------------------------------------
+Bananas (2.1 lb)                   $1.26
+Whole milk 1 gal                   $3.89
+Brown eggs dozen                   $4.29
+Sourdough bread                    $5.49
+Apples Gala 3 lb                   $4.99
+----------------------------------------
+Subtotal                          $19.92
+Tax (food exempt)                  $0.00
+TOTAL                             $19.92
+Paid: Cash                        $20.00
+Change                             $0.08
+----------------------------------------
+Items sold: 5
+Rewards questions: rewards@greenvalley.example.com

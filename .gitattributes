@@ -1,0 +1,8 @@
+# Normalize text files; never touch line endings inside documents (a PDF's byte offsets would break).
+* text=auto
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.docx binary
