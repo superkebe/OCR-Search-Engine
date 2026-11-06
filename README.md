@@ -1,5 +1,5 @@
 # OCR Search Engine
-Rebuilt for Isiaka Kebe from the project description in his résumé. This is a new implementation, not recovered original code.
+Build by Isiaka Kebe.
 
 ## Run locally
 Python 3.11 or newer (tested on 3.14). Install Tesseract OCR first (see below). From this folder:
