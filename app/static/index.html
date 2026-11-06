@@ -18,9 +18,12 @@ const $=id=>document.getElementById(id);let selected='';
 async function api(path,options={}){const r=await fetch(path,options);const data=await r.json();if(!r.ok)throw Error(typeof data.detail==='string'?data.detail:JSON.stringify(data.detail));return data}
 function post(path,body){return api(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
 async function busy(task){document.querySelectorAll('button').forEach(b=>b.disabled=true);$('status').textContent='Working…';try{await task();$('status').textContent='Done.'}catch(e){$('status').textContent=e.message}finally{document.querySelectorAll('button').forEach(b=>b.disabled=false)}}
-async function refresh(){const docs=await api('/api/documents');$('documents').replaceChildren(new Option('Select a document',''));docs.forEach(d=>$('documents').add(new Option(d.name+' · '+d.mode,d.id)));$('documents').value=selected}
-function show(doc){selected=doc.id;$('text').textContent=doc.text;$('mode').textContent=doc.mode==='demo'?'SAMPLE MODE · Fixed answers, no AI call':'CLOUD MODE · Answers generated with Gemini';$('entities').textContent='Detected emails and amounts: '+JSON.stringify(doc.entities);$('answer').textContent='';$('evidence').replaceChildren()}
-function showAnswer(result){$('answer').textContent=result.answer;$('mode').textContent=(result.mode==='demo'?'SAMPLE MODE':'CLOUD MODE')+' · '+result.seconds+' seconds';$('evidence').replaceChildren();for(const e of result.evidence){const b=document.createElement('blockquote');b.textContent='Source chunk '+e.chunk_id+' — '+e.quote;$('evidence').append(b)}}
+async function refresh(){const docs=await api('/api/documents');$('documents').replaceChildren(new Option('Select a document',''));docs.forEach(d=>$('documents').add(new Option(d.name+(d.mode==='demo'?' · sample':''),d.id)));$('documents').value=selected}
+let aiReady=false;
+function modeText(doc){return doc.mode==='demo'?'SAMPLE MODE · Fixed answers, no AI call':aiReady?'AI MODE · Answers generated with Gemini':'AI answers need a Gemini key: set GEMINI_API_KEY in .env and restart.'}
+function quickScan(e){const parts=[];if(e.emails.length)parts.push('Emails: '+e.emails.join(', '));if(e.amounts.length)parts.push('Amounts: '+e.amounts.join(', '));return parts.length?'Quick scan · '+parts.join(' · '):'Quick scan · No emails or amounts found. Use Extract details below for more.'}
+function show(doc){selected=doc.id;$('text').textContent=doc.text;$('mode').textContent=modeText(doc);$('entities').textContent=quickScan(doc.entities);$('answer').textContent='';$('evidence').replaceChildren()}
+function showAnswer(result){$('answer').textContent=result.answer;$('mode').textContent=(result.mode==='demo'?'SAMPLE MODE':'AI MODE')+' · '+result.seconds+' seconds';$('evidence').replaceChildren();for(const e of result.evidence){const b=document.createElement('blockquote');b.textContent='Source chunk '+e.chunk_id+' — '+e.quote;$('evidence').append(b)}}
 $('upload').onclick=()=>busy(async()=>{if(!$('file').files[0])throw Error('Choose a file first.');const form=new FormData();form.append('file',$('file').files[0]);show(await api('/api/documents',{method:'POST',body:form}));await refresh()});
 $('demo').onclick=()=>busy(async()=>{show(await post('/api/demo',{}));await refresh()});
 $('documents').onchange=()=>busy(async()=>{if(!$('documents').value){selected='';$('text').textContent='Select a document.';$('answer').textContent='';$('evidence').replaceChildren();$('mode').textContent='Select a document to begin.';$('entities').textContent='';return}show(await api('/api/documents/'+$('documents').value))});
@@ -46,6 +49,7 @@ $('copy').onclick=()=>busy(async()=>{const text=Object.entries(extracted.results
 $('csv').onclick=()=>{const q=s=>'"'+String(s).replace(/"/g,'""')+'"';const csv=[['Detail','Value'],...rows()].map(r=>r.map(q).join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'}));a.download='extracted-details.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
 const baseShow=show;show=doc=>{baseShow(doc);clearResults()};
 $('documents').addEventListener('change',()=>{if(!$('documents').value)clearResults()});
+api('/api/health').then(h=>{aiReady=h.ai_configured}).catch(()=>{});
 loadFields().catch(e=>$('status').textContent=e.message);
 refresh().catch(e=>$('status').textContent=e.message);
 </script></body></html>

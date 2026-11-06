@@ -1,72 +1,163 @@
 # OCR Search Engine
-Build by Isiaka Kebe.
 
-## Run locally
-Python 3.11 or newer (tested on 3.14). Install Tesseract OCR first (see below). From this folder:
+Built by Isiaka Kebe.
+
+[![tests](https://github.com/superkebe/OCR-Search-Engine/actions/workflows/tests.yml/badge.svg)](https://github.com/superkebe/OCR-Search-Engine/actions/workflows/tests.yml)
+![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+Turn images, PDFs, and Word documents into searchable text, then pull out exactly the details you need: emails, phone numbers, dates, amounts, addresses, names, or Social Security numbers. OCR and detail extraction run entirely on your own computer. Optional Gemini integration answers questions about a document and shows the source quotes behind every answer.
+
+![Extract details panel showing names, addresses, phone numbers and a masked SSN found in a sample employee form](docs/screenshot-extract.png)
+
+## Features
+
+- **Many input formats.** PNG, JPEG, and WebP images; PDFs (up to 30 pages); Word `.docx`; and plain text. PDFs that already contain text are read directly, so only scanned pages go through OCR.
+- **Local OCR.** [Tesseract](https://github.com/tesseract-ocr/tesseract) by default, no account or key needed. Google Cloud Vision is available as an option. Images are cleaned up with OpenCV first (orientation, grayscale, smoothing).
+- **Choose what to extract.** Tick any of 10 detail types: emails, phone numbers, money amounts, dates, invoice/order/account numbers, all numbers, people's names, organizations, street addresses, and SSNs. Copy the results or download them as CSV.
+- **Privacy by default.** SSNs are masked on screen (`***-**-4320`) until you choose to reveal them. Extraction never leaves your machine.
+- **Questions with evidence.** Ask "What is the total due?" and Gemini answers using only the document, citing verbatim quotes. Answers whose quotes can't be found in the text are rejected.
+- **REST API.** Every feature is available over a documented FastAPI API, served over HTTPS on localhost.
+- **Tested.** 17 automated tests run on every push, including one against the real Tesseract engine.
+
+<details>
+<summary>Full-page screenshot</summary>
+
+![The whole app: upload panel, question panel, and extract details panel](docs/screenshot-full.png)
+
+</details>
+
+## How it works
+
+```mermaid
+flowchart LR
+    A[Upload] --> B{File type}
+    B -->|Image| C[OpenCV cleanup] --> D[Tesseract OCR<br/>or Cloud Vision]
+    B -->|PDF| E{Page has text?}
+    E -->|Yes| F[Read text layer]
+    E -->|No, scanned| C
+    B -->|Word / text| G[Read directly]
+    D --> H[(SQLite)]
+    F --> H
+    G --> H
+    H --> I[Extract details<br/>regex + spaCy]
+    H --> J[Ask / summarize<br/>Gemini + quote check]
+```
+
+## Tech stack
+
+| Area | Tools |
+|---|---|
+| Web API and UI | FastAPI, Uvicorn (HTTPS), vanilla HTML/JS |
+| OCR and images | Tesseract (pytesseract), Google Cloud Vision (optional), OpenCV, Pillow |
+| Documents | pypdfium2 (PDF), python-docx (Word) |
+| Detail extraction | Regular expressions, spaCy `en_core_web_sm` |
+| AI answers | Google Gemini (`google-genai`) with structured output |
+| Storage | SQLite |
+| Testing and CI | pytest, GitHub Actions |
+
+## Quick start
+
+**Requirements:** Python 3.11 or newer, and Tesseract OCR.
+
+1. **Install Tesseract.**
+   - Windows: `winget install UB-Mannheim.TesseractOCR`
+   - macOS: `brew install tesseract`
+   - Ubuntu/Debian: `sudo apt install tesseract-ocr`
+
+2. **Set up the project.**
+
+   ```bash
+   git clone https://github.com/superkebe/OCR-Search-Engine.git
+   cd OCR-Search-Engine
+   python -m venv .venv
+   source .venv/bin/activate        # Windows: .venv\Scripts\activate
+   python -m pip install -r requirements.txt
+   cp .env.example .env             # Windows: copy .env.example .env
+   ```
+
+3. **Run it.**
+
+   ```bash
+   python app/main.py
+   ```
+
+   Open **https://127.0.0.1:8000/**. On first start the app creates a self-signed certificate in `certs/`, so the browser warns once: choose **Advanced**, then **Continue**. API documentation is at https://127.0.0.1:8000/docs.
+
+4. **Try it.** Upload any file from [`samples/`](samples/), then use **Extract details**.
+
+### Optional: AI questions and summaries
+
+Create a free key at [Google AI Studio](https://aistudio.google.com/apikey), put it after `GEMINI_API_KEY=` in `.env`, and restart. Never commit `.env`; it is already in `.gitignore`.
+
+### Optional: Google Cloud Vision instead of Tesseract
+
+Set `OCR_ENGINE=vision` in `.env`, enable the Cloud Vision API (with billing) in a Google Cloud project, and set up credentials with `gcloud auth application-default login` or `GOOGLE_APPLICATION_CREDENTIALS`.
+
+### Configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `OCR_ENGINE` | `tesseract` | `tesseract` (local) or `vision` (Google Cloud) |
+| `TESSERACT_CMD` | auto-detected | Path to `tesseract` if it is not on PATH |
+| `TESSERACT_LANG` | `eng` | Tesseract language code(s), e.g. `eng+fra` |
+| `GEMINI_API_KEY` | none | Enables questions and summaries |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model to use |
+| `OCR_DB` | `documents.sqlite3` | Where extracted text is stored |
+
+## Sample documents
+
+[`samples/`](samples/) holds fictional test documents in every supported format: a coffee-shop receipt (PNG), an invoice (PNG, text PDF, and scanned PDF), an office-supply invoice (Word), a grocery receipt (text), and an employee form with a name, address, and SSN (PNG). All businesses, people, and numbers are made up; the SSN 987-65-4320 is from the range reserved for examples. Regenerate them with `python samples/generate_samples.py`.
+
+## API
+
+| Method | Route | Description |
+|---|---|---|
+| `POST` | `/api/documents` | Upload a file (multipart `file`); returns the extracted text |
+| `GET` | `/api/documents` | List saved documents |
+| `GET` | `/api/documents/{id}` | Get one document's text |
+| `GET` | `/api/fields` | List the detail types that can be extracted |
+| `POST` | `/api/extract` | Extract chosen details: `{"document_id": "...", "fields": ["emails", "ssns"]}` |
+| `POST` | `/api/ask` | Ask a question: `{"document_id": "...", "question": "..."}` |
+| `POST` | `/api/summarize` | Summarize a document: `{"document_id": "..."}` |
+| `GET` | `/api/health` | Status, and whether Gemini is configured |
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-cp .env.example .env
-python app/main.py
+curl -k -F "file=@samples/employee_form.png" https://127.0.0.1:8000/api/documents
+curl -k -H "Content-Type: application/json" \
+     -d '{"document_id":"ID_FROM_UPLOAD","fields":["names","addresses","ssns"]}' \
+     https://127.0.0.1:8000/api/extract
 ```
-On Windows activate with `.venv\Scripts\activate` and copy `.env.example` to `.env` using File Explorer or `copy .env.example .env`.
-Open https://127.0.0.1:8000/. Interactive API documentation: https://127.0.0.1:8000/docs. On first start the app creates a self-signed certificate in `certs/` (not committed); the browser warns once, so choose Advanced and continue. Delete `certs/` to generate a new one.
 
-Click **Try sample invoice** to explore without credentials. Ask about the total or due date, or summarize. This mode uses fixed fictional text and fixed answers. It does not perform OCR or call an LLM.
+## Project structure
 
-The `samples/` folder holds fictional receipts, invoices, and an employee form in every supported format (PNG, text PDF, scanned PDF, DOCX, TXT) for trying OCR and detail extraction. Regenerate them with `python samples/generate_samples.py`. All data is made up; the SSN 987-65-4320 is from the range reserved for examples.
-
-## Enable real OCR and AI
-1. OCR runs locally with Tesseract by default (`OCR_ENGINE=tesseract`). On Windows install it with `winget install UB-Mannheim.TesseractOCR`; the app finds it on PATH or in `C:\Program Files\Tesseract-OCR`, or set TESSERACT_CMD. No account or key is needed for OCR.
-2. Optional, for Google Cloud Vision instead: set `OCR_ENGINE=vision`, create/select a Google Cloud project, enable billing and Cloud Vision API, then set up Application Default Credentials using `gcloud auth application-default login` or set GOOGLE_APPLICATION_CREDENTIALS to a service-account JSON path outside this project.
-3. Create a Gemini API key in Google AI Studio. Put it in GEMINI_API_KEY in .env. Never put keys in the frontend or commit them.
-4. GEMINI_MODEL defaults to gemini-2.5-flash. Change it to a model available to your account if needed.
-5. Restart the server and upload an image or document. Images and scanned PDF pages are OCRed by the configured engine; Gemini receives extracted source text and your question. Provider charges may apply for Gemini and Vision.
-
-Original files are not saved. Extracted text, including any personal details such as SSNs, is stored unencrypted in local documents.sqlite3. To clear data, stop the server and delete that file. Intended for one person on localhost: no authentication, tenant isolation, rate limits, malware scanning, or production deployment configuration is included.
-
-## What is implemented
-- HTTPS on localhost with an automatically generated self-signed certificate.
-- Validated PNG/JPEG/WebP uploads, 10 MB limit, 16-million-pixel limit.
-- PDF uploads (up to 30 pages): pages with a text layer are read locally with pypdfium2; scanned pages are rendered and OCRed. Word (.docx) and UTF-8 text (.txt/.md/.csv) files are read locally.
-- Image orientation correction, grayscale conversion and Gaussian smoothing with OpenCV.
-- Local Tesseract OCR (default) or Google Cloud Vision document OCR, whitespace cleaning, rule-based email and currency extraction.
-- "Extract details" panel (`POST /api/extract`, field list at `GET /api/fields`): choose any of emails, phone numbers, money amounts, dates, invoice/order/account numbers, all numbers, people's names, organizations, street addresses, and Social Security numbers. Runs locally: regular expressions for structured details, spaCy `en_core_web_sm` plus label rules ("Name:", "Cashier:") for names. SSNs are masked on screen until "Show full SSNs" is ticked; results can be copied or downloaded as CSV. Names and organizations are best-effort guesses and should be checked.
-- SQLite persistence and document selection.
-- Overlapping text chunks and simple keyword-ranked retrieval for questions.
-- Gemini structured answers with source quotations and chunk IDs. Quotations must occur verbatim in their cited chunk. This checks quote existence, not whether every claim is supported; inspect the source.
-- Full-document summary with a 70,000-character limit; longer documents are rejected rather than silently summarized partially.
-- Actual OCR and answer elapsed times. No sub-second performance claim is made.
-- Explicit sample mode, error handling, REST endpoints and a browser interface.
-
-This version handles individual images and documents, not bulk datasets, vector search, or multiple independently deployed microservices. It provides a foundation for those extensions. Detail extraction combines regular expressions with spaCy's small pretrained English model; it is not trained on this project's documents, so names and organizations need review. Addresses and phone numbers follow US formats.
-
-## API examples
-```bash
-curl -k -F 'file=@invoice.png' https://127.0.0.1:8000/api/documents
-curl -k -H 'Content-Type: application/json' -d '{"document_id":"ID_FROM_UPLOAD","question":"What is the total?"}' https://127.0.0.1:8000/api/ask
-curl -k -H 'Content-Type: application/json' -d '{"document_id":"ID_FROM_UPLOAD"}' https://127.0.0.1:8000/api/summarize
-curl -k -H 'Content-Type: application/json' -d '{"document_id":"ID_FROM_UPLOAD","fields":["emails","names","ssns"]}' https://127.0.0.1:8000/api/extract
+```text
+app/
+  main.py            FastAPI app: uploads, OCR, PDF/Word reading, Gemini, HTTPS
+  extract.py         Detail extraction (regular expressions + spaCy)
+  static/index.html  Browser interface
+samples/             Fictional receipts, invoices, and a form, plus their generator
+tests/               pytest suite
+docs/                Screenshots
 ```
-Other routes: GET /api/health, GET /api/fields, GET /api/documents, GET /api/documents/{id}, POST /api/demo.
 
-## Tests
+## Testing
+
 ```bash
 python -m pytest -q
 ```
-Tests use provider doubles and never consume Google API quota. They cover upload validation, the image-to-text-to-answer workflow, PDF (text and scanned), Word and text uploads, detail extraction including SSN rules, persistence, sample behavior, retrieval and request errors. One test runs the real Tesseract and is skipped if it is not installed. A live cloud smoke test requires your own credentials and an image with known text; compare extracted text and answers against that image.
 
-## Explain it in an interview
-“I built a Python application that turns images, PDFs, and Word documents into searchable text. Images and scanned PDF pages go through OCR, with Tesseract running locally by default and Google Cloud Vision as an option; PDFs that already contain text are read directly, which avoids OCR cost. I use OpenCV to prepare images before OCR. Users choose which details to pull out, such as emails, phone numbers, dates, amounts, addresses, names, or Social Security numbers, using regular expressions plus a spaCy language model; SSNs are masked on screen by default. Users can also ask questions or request summaries through Gemini, and the interface shows source quotations so they can check each answer. I exposed the workflow through a FastAPI REST API served over HTTPS, stored the extracted text in SQLite, and covered it with pytest tests.”
+The tests use stand-ins for Google services, so they never use API quota. They cover upload validation for every file type, scanned and text PDFs, detail extraction including SSN rules, persistence, retrieval, answer verification, and error handling. One test runs the real Tesseract and is skipped when it is not installed. GitHub Actions runs the suite on Python 3.12 and 3.14 for every push.
 
-Python coordinates the steps; OpenCV processes images; Tesseract or Vision reads words; pypdfium2 and python-docx read PDFs and Word files; spaCy and regular expressions find details; Gemini interprets the extracted text; FastAPI exposes endpoints; SQLite stores text. The sample button bypasses the Google services and must not be presented as a live AI demonstration.
+## Privacy and limitations
 
-## Official references
-- https://github.com/tesseract-ocr/tesseract
-- https://spacy.io/models/en
-- https://docs.cloud.google.com/vision/docs/ocr
-- https://docs.cloud.google.com/docs/authentication/provide-credentials-adc
-- https://googleapis.github.io/python-genai/
-- https://ai.google.dev/gemini-api/docs/api-key
+- Built for one person on their own computer: there is no login, rate limiting, or multi-user isolation. Do not expose it to the internet as-is.
+- Original files are not kept, but extracted text, including any personal details, is stored **unencrypted** in `documents.sqlite3`. Stop the server and delete that file to clear everything.
+- With a Gemini key, the question and relevant parts of the document text are sent to Google. OCR and detail extraction never leave your computer (unless you choose Cloud Vision).
+- Name and organization detection uses a small general-purpose language model; treat results as suggestions. Addresses and phone numbers follow US formats.
+- Gemini's quote check confirms each quote exists in the document, not that every sentence of the answer is correct.
+
+## License
+
+[MIT](LICENSE) © 2026 Isiaka Kebe

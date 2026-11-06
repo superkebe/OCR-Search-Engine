@@ -5,3 +5,4 @@ __pycache__/
 .pytest_cache/
 *credentials*.json
 certs/
+INTERVIEW_NOTES.md
