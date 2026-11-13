@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>OCR Search Engine</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%233ddc97'/%3E%3Ccircle cx='10.5' cy='10.5' r='5' fill='none' stroke='%2304221a' stroke-width='2.4'/%3E%3Cpath d='M14.5 14.5l5 5' stroke='%2304221a' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>
+  // Apply a saved theme before the page paints, so it never flashes the other one.
+  try { const t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
 <style>
 :root {
   --bg: #f4f6f2;
@@ -32,8 +36,18 @@
   color: var(--text);
   background: var(--bg);
 }
+:root { color-scheme: light; }
+/* Dark theme: follows the system unless the viewer picked a theme with the toggle (data-theme). */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b1311; --surface: #121d1a; --surface-2: #17241f; --border: #243630; --text: #e6f0ec; --muted: #92a8a0;
+  --accent: #3ddc97; --accent-strong: #5fe8ab; --accent-soft: #173a2d; --accent-text: #06231a;
+  --mark: #5c4b0f; --mark-active: #8a6d0c; --danger: #ff8a80; --danger-soft: #3a1c1a;
+  --hero-1: #07100d; --hero-2: #0f2a21; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+}
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #0b1311;
     --surface: #121d1a;
     --surface-2: #17241f;
@@ -73,6 +87,15 @@ body.busy #progress { opacity: 1; }
 .logo { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: linear-gradient(140deg, var(--glow), #1d8a66); color: #04221a; box-shadow: 0 0 24px rgba(61, 220, 151, .35); }
 .status-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .chip-dark { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; font-size: 13px; color: var(--hero-muted); background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); }
+.theme-btn { cursor: pointer; font: inherit; color: var(--hero-text); }
+.theme-btn:hover { background: rgba(255,255,255,.12); }
+.theme-btn:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+.theme-btn .moon, :root[data-theme="dark"] .theme-btn .sun { display: none; }
+:root[data-theme="dark"] .theme-btn .moon { display: inline; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-btn .sun { display: none; }
+  :root:not([data-theme="light"]) .theme-btn .moon { display: inline; }
+}
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #6b7f78; }
 .dot.on { background: var(--glow); box-shadow: 0 0 8px var(--glow); }
 .dot.off { background: #e0a43a; }
@@ -243,7 +266,7 @@ footer .wrap { border-top: 1px solid var(--border); padding-top: 18px; }
   .doc-list { max-height: 260px; }
   .stats { grid-template-columns: repeat(2, 1fr); }
   .steps { grid-template-columns: 1fr; }
-  .status-chips .chip-dark:not(:first-child) { display: none; }
+  .status-chips .chip-dark:not(:first-child):not(.theme-btn) { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -265,6 +288,11 @@ footer .wrap { border-top: 1px solid var(--border); padding-top: 18px; }
       <div class="status-chips">
         <span class="chip-dark"><span class="dot on"></span>Runs on this computer</span>
         <span class="chip-dark" id="aiChip"><span class="dot" id="aiDot"></span><span id="aiText">Checking Gemini…</span></span>
+        <button class="chip-dark theme-btn" id="themeToggle" type="button" aria-label="Switch to dark mode">
+          <svg class="sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>
+          <svg class="moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5A8.5 8.5 0 019.5 3.5a8.5 8.5 0 1011 11z"/></svg>
+          <span id="themeText">Light</span>
+        </button>
       </div>
     </div>
 
@@ -425,7 +453,7 @@ function toast(message, error = false) {
   toastTimer = setTimeout(() => t.className = error ? 'error' : '', error ? 6000 : 2200);
 }
 async function busy(task, label = 'Working…', done = '') {
-  document.querySelectorAll('button, #file').forEach(b => b.disabled = true);
+  document.querySelectorAll('button:not(#themeToggle), #file').forEach(b => b.disabled = true);
   document.body.classList.add('busy');
   $('busyLabel').textContent = label;
   try {
@@ -707,6 +735,24 @@ $('csv').onclick = () => {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
+
+/* Theme */
+const systemDark = matchMedia('(prefers-color-scheme: dark)');
+const themeNow = () => document.documentElement.dataset.theme || (systemDark.matches ? 'dark' : 'light');
+function syncThemeButton() {
+  const dark = themeNow() === 'dark';
+  $('themeText').textContent = dark ? 'Dark' : 'Light';
+  $('themeToggle').setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  $('themeToggle').title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+}
+$('themeToggle').onclick = () => {
+  const next = themeNow() === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('theme', next); } catch (e) {}
+  syncThemeButton();
+};
+systemDark.addEventListener('change', syncThemeButton);
+syncThemeButton();
 
 /* Startup */
 api('/api/health').then(h => {
