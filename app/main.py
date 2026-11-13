@@ -33,6 +33,7 @@ Image.MAX_IMAGE_PIXELS = MAX_PIXELS
 MAX_PDF_PAGES = 30  # Caps Cloud Vision cost for scanned PDFs.
 MIN_PDF_PAGE_TEXT = 20  # Fewer characters than this means the page is treated as a scan.
 PDF_RENDER_SCALE = 2  # 144 DPI, enough for OCR.
+PDF_CELL_GAP = 1.5  # A horizontal gap wider than 1.5 line heights separates table cells.
 TEXT_EXTENSIONS = (".txt", ".md", ".csv")
 TESSERACT_WINDOWS_DEFAULT = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 STATIC = Path(__file__).parent / "static"
@@ -60,8 +61,7 @@ def clean_text(text):
 
 def entities(text):
     # Explicit rule-based extraction, not a trained named-entity model.
-    return {"emails": sorted(set(re.findall(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", text))),
-            "amounts": sorted(set(re.findall(r"\$\d[\d,]*(?:\.\d{2})?", text)))}
+    return {"emails": detail_extract.emails(text), "amounts": detail_extract.amounts(text)}
 
 
 def chunks(text, size=1400, overlap=180):
@@ -144,6 +144,40 @@ def preprocess(data):
         raise HTTPException(415, "Cannot read this file. Use a PNG, JPEG, WebP, PDF, DOCX, or TXT file")
 
 
+def pdf_page_text(page):
+    """Rebuild a page's text layer line by line, marking table columns with " | ".
+
+    The plain text layer runs table cells together ("28 800 5 760 000 10 105,26"), which makes the
+    numbers impossible to tell apart. PDFium reports each run of text with its position, so runs that
+    share a line are joined in left-to-right order and wide gaps become cell separators.
+    """
+    textpage = page.get_textpage()
+    items = []
+    for i in range(textpage.count_rects()):
+        left, bottom, right, top = textpage.get_rect(i)
+        text = " ".join(textpage.get_text_bounded(left, bottom, right, top).split())
+        if text and top > bottom:
+            items.append((left, bottom, right, top, text))
+    lines = []
+    for item in sorted(items, key=lambda it: -(it[1] + it[3])):  # Top of the page first.
+        if lines:
+            first = lines[-1][0]
+            # Same line when the vertical centers are within half of the smaller height.
+            if abs((item[1] + item[3]) - (first[1] + first[3])) / 2 <= min(item[3] - item[1], first[3] - first[1]) / 2:
+                lines[-1].append(item)
+                continue
+        lines.append([item])
+    out = []
+    for line in lines:
+        line.sort(key=lambda it: it[0])
+        height = max(it[3] - it[1] for it in line)
+        text = line[0][4]
+        for previous, item in zip(line, line[1:]):
+            text += (" | " if item[0] - previous[2] > PDF_CELL_GAP * height else " ") + item[4]
+        out.append(text)
+    return "\n".join(out)
+
+
 def pdf_text(data, ocr):
     import pypdfium2 as pdfium
     try:
@@ -155,7 +189,7 @@ def pdf_text(data, ocr):
             raise HTTPException(413, f"PDF exceeds {MAX_PDF_PAGES} pages")
         pages = []
         for page in pdf:
-            text = page.get_textpage().get_text_bounded()
+            text = pdf_page_text(page)
             # Pages without a usable text layer are scans: render them and OCR the image.
             if len(text.strip()) < MIN_PDF_PAGE_TEXT:
                 width, height = page.get_size()

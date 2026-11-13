@@ -270,3 +270,19 @@ def test_gemini_evidence_validation(monkeypatch):
     # One fabricated citation discredits the answer even when another citation is real.
     payload["evidence"] = [{"chunk_id": 0, "quote": "Total: $20"}, {"chunk_id": 999, "quote": "fake"}]
     assert generate("Total: $20", "total?") == unverified
+
+
+def test_international_and_table_amounts():
+    from app.extract import amounts
+    text = ("Pièces / | Quantité | Prix unitaire | Montant | Montant\n"
+            "carton | (pièces) | (FCFA) | (FCFA) | (USD)\n"
+            "VEGETA 250 g\n"
+            "16 | 3 200 | 1 800 | 5 760 000 | 10 105,26\n"
+            "Total | 300 | TOTAL | 10 760 000 | 18 877,18\n"
+            "Arrêtée à la somme de (10 760 000) francs CFA, soit (18 877,18 USD).")
+    found = amounts(text)
+    assert found == ["10 760 000 FCFA", "18 877,18 USD", "1 800 FCFA", "5 760 000 FCFA", "10 105,26 USD"]
+    # Quantities in non-currency columns and the item count on the total row are not money.
+    assert not any(value.startswith(("3 200", "300", "16 ")) for value in found)
+    assert amounts("TOTAL 10 760 000") == ["10 760 000"]
+    assert amounts("Total pieces: 300") == []

@@ -18,6 +18,21 @@ STATES = ("AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI 
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}")
 PHONE = re.compile(r"(?<![\w-])(?:\+?1[\s.-]?)?(?:\(\d{3}\)\s?|\d{3}[\s.-])\d{3}[\s.-]\d{4}(?![\w-])")
 AMOUNT = re.compile(r"(?:[$€£]\s?\d[\d,]*(?:\.\d{1,2})?|\b\d[\d,]*\.\d{2}\s?(?:USD|EUR|GBP)\b)")
+# International amounts: "10 760 000", "18 877,18", "1.800,50", followed or preceded by a currency.
+SPACE = "[   ]"  # Normal, no-break and narrow no-break spaces (French thousands separators).
+CURRENCY = (r"USD|EUR|GBP|XOF|XAF|F\s?CFA|francs?\s+CFA|CFA|GNF|NGN|GHS|CAD|CHF|MAD|"
+            r"dollars?(?:\s+US)?|euros?")
+CURRENCY_WORD = re.compile(rf"(?<![A-Za-z])(?:{CURRENCY})(?![A-Za-z])", re.I)
+MONEY_NUMBER = rf"\d{{1,3}}(?:(?:{SPACE}|[.,'])\d{{3}})+(?:[.,]\d{{1,2}})?|\d+(?:[.,]\d{{1,2}})?"
+# Never start inside a longer number: in "28 800 5 760 000" a match may not begin at "5 760 000".
+NUMBER_START = rf"(?<![\d.,])(?<![\d.,]{SPACE})"
+TAGGED_AMOUNT = re.compile(
+    rf"{NUMBER_START}(?P<num>{MONEY_NUMBER})(?!\d)\)?{SPACE}*(?P<cur>{CURRENCY})(?![A-Za-z])"
+    rf"|(?<![A-Za-z])(?P<cur2>{CURRENCY}){SPACE}*(?P<num2>{MONEY_NUMBER})(?!\d)", re.I)
+NUMERIC_CELL = re.compile(rf"\(?(?:{MONEY_NUMBER})\)?")
+UNTAGGED_NUMBER = re.compile(rf"{NUMBER_START}(?:{MONEY_NUMBER})(?!\d)")
+TOTAL_LABEL = re.compile(r"\b(?:grand[ -]total|sous[ -]total|sub[ -]?total|total|montant|amount|balance|solde|"
+                         r"net [àa] payer|tva|vat|tax)\b", re.I)
 NUMBER = re.compile(r"(?<![\w.,-])-?\d{1,3}(?:,\d{3})+(?:\.\d+)?(?![\w,])|(?<![\w.,-])-?\d+(?:\.\d+)?%?(?![\w,])")
 SSN = re.compile(r"(?<![\d-])(?!000|666)\d{3}-(?!00)\d{2}-(?!0000)\d{4}(?![\d-])")
 SSN_LABELED = re.compile(r"(?:SSN|Social Security(?: Number| No\.?)?)\s*[:#]?\s*(\d{3}[ -]?\d{2}[ -]?\d{4})(?!\d)", re.I)
@@ -100,8 +115,81 @@ def phones(text):
     return _unique(PHONE.findall(text))
 
 
+def _currency_code(raw):
+    word = " ".join(raw.upper().split())
+    if "CFA" in word:
+        return "FCFA"
+    if word.startswith("DOLLAR"):
+        return "USD"
+    if word.startswith("EURO"):
+        return "EUR"
+    return word
+
+
+def _money(number, currency=None):
+    number = re.sub(SPACE, " ", number.strip("()"))
+    return f"{number} {_currency_code(currency)}" if currency else number
+
+
+def _money_shaped(number):
+    # Without a currency, only grouped or two-decimal numbers count: "10 760 000", "18 877,18", not "300".
+    return bool(re.search(rf"\d(?:{SPACE}|[.,'])\d{{3}}|[.,]\d{{2}}\)?$", number))
+
+
+def _tagged_amounts(text):
+    return [_money(m.group("num") or m.group("num2"), m.group("cur") or m.group("cur2"))
+            for m in TAGGED_AMOUNT.finditer(text)]
+
+
+def _table_amounts(text):
+    """Amounts in table rows whose cells are separated by " | " (PDF and Word tables).
+
+    A header cell naming a currency, such as "Montant (FCFA)", marks its column as money. Columns are
+    matched from the right, because amount columns are the rightmost ones and are always filled in,
+    while the description column on the left may sit on a separate line.
+    """
+    found, columns = [], {}  # columns: position counted from the right -> currency code
+    for line in text.splitlines():
+        cells = [cell.strip() for cell in line.split("|")]
+        if len(cells) < 2:
+            continue
+        numeric = [bool(NUMERIC_CELL.fullmatch(cell)) for cell in cells]
+        if not any(numeric):
+            currencies = {len(cells) - i: _currency_code(m.group(0))
+                          for i, cell in enumerate(cells) if (m := CURRENCY_WORD.search(cell))}
+            if currencies:
+                columns = currencies
+            continue
+        labels = [i for i, cell in enumerate(cells) if not numeric[i] and TOTAL_LABEL.search(cell)]
+        # In "Total | 300 | TOTAL | 10 760 000 | 18 877,18" only the cells after the last label are amounts.
+        for i in range(labels[-1] + 1 if labels else 0, len(cells)):
+            if not numeric[i]:
+                continue
+            currency = columns.get(len(cells) - i)
+            if currency:
+                found.append(_money(cells[i], currency))
+            elif labels and _money_shaped(cells[i]):
+                found.append(_money(cells[i]))
+        if labels:
+            columns = {}  # A total row ends the table.
+    return found
+
+
+def _labeled_amounts(text):
+    """Plain lines such as "TOTAL 10 760 000" (for example from OCR): the first amount after the label."""
+    found = []
+    for line in text.splitlines():
+        labels = list(TOTAL_LABEL.finditer(line))
+        if "|" in line or not labels or AMOUNT.search(line) or TAGGED_AMOUNT.search(line):
+            continue
+        number = UNTAGGED_NUMBER.search(line, labels[-1].end())
+        if number and _money_shaped(number.group(0)):
+            found.append(_money(number.group(0)))
+    return found
+
+
 def amounts(text):
-    return _unique(AMOUNT.findall(text))
+    return _unique(AMOUNT.findall(text) + _tagged_amounts(text) + _table_amounts(text) + _labeled_amounts(text))
 
 
 def numbers(text):

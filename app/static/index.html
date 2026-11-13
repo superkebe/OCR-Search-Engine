@@ -1,55 +1,722 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OCR Search Engine</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OCR Search Engine</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%233ddc97'/%3E%3Ccircle cx='10.5' cy='10.5' r='5' fill='none' stroke='%2304221a' stroke-width='2.4'/%3E%3Cpath d='M14.5 14.5l5 5' stroke='%2304221a' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
-:root{font-family:system-ui,sans-serif;color:#18312e;background:#f3f5ef}*{box-sizing:border-box}body{max-width:1150px;margin:auto;padding:35px 22px}header{display:flex;justify-content:space-between;align-items:center}small,.muted{color:#526861}.pill{border:1px solid #c4d3c7;border-radius:30px;padding:8px 15px;font-size:13px}h1{font-size:clamp(32px,5vw,56px);letter-spacing:-2px;max-width:700px;margin-bottom:12px}h2{font-size:18px}p{line-height:1.6}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:28px}section{background:white;border:1px solid #d8dfd5;border-radius:18px;padding:24px}button{border:0;border-radius:9px;padding:12px 17px;background:#21634e;color:white;cursor:pointer;font:inherit}button.secondary{color:#21634e;background:#eaf1e9}button:disabled{opacity:.5;cursor:wait}input,select{width:100%;padding:12px;border:1px solid #ccd7cd;border-radius:8px;margin:8px 0 14px;font:inherit}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f7f2;padding:16px;border-radius:10px;max-height:360px;overflow:auto;font:14px/1.6 ui-monospace,monospace}#answer{line-height:1.7;white-space:pre-wrap}blockquote{border-left:3px solid #86a993;padding-left:14px;color:#526861}#status{min-height:24px;margin-top:18px}label{display:block;font-size:14px}.actions{display:flex;gap:10px;flex-wrap:wrap}footer{margin-top:25px;font-size:13px;color:#526861}[hidden]{display:none!important}#extractor{margin-top:20px}.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 16px;margin:10px 0 16px}.fields label{display:flex;gap:9px;align-items:center;padding:7px 0;font-size:15px;cursor:pointer}.fields input,.inline input{width:auto;margin:0;accent-color:#21634e}.inline{display:inline-flex;gap:8px;align-items:center;font-size:14px;margin-left:auto}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.results{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:18px}.result{border:1px solid #d8dfd5;border-radius:12px;padding:14px 16px}.result h3{font-size:15px;margin:0 0 8px;display:flex;justify-content:space-between}.result h3 span{color:#526861;font-weight:400}.result ul{margin:0;padding-left:18px;line-height:1.7;overflow-wrap:anywhere}.result .none{color:#526861;font-size:14px;margin:0}@media(max-width:750px){.grid{grid-template-columns:1fr}header{gap:15px}}
-</style></head><body>
-<header><strong>IK / DOCUMENT TOOLS</strong><span class="pill">OCR + AI · Local workspace</span></header>
-<h1>Your documents.<br>Clearer answers.</h1><p class="muted">Extract text from an image or document, ask a question, and inspect the source behind the answer.</p>
-<div class="grid"><section><h2>1. Add a document</h2><p class="muted">Image (PNG, JPEG, WebP), PDF, Word (.docx), or text file · up to 10 MB · PDFs up to 30 pages</p><label for="file">Choose a file</label><input id="file" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.txt,.md,.csv,text/plain"><div class="actions"><button id="upload">Extract text</button><button class="secondary" id="demo">Try sample invoice</button></div><p class="muted">Sample mode uses fictional text and fixed answers. It does not call OCR or Gemini.</p><label for="documents">Saved documents</label><select id="documents"><option value="">Select a document</option></select><h2>Extracted text</h2><pre id="text">Your extracted text will appear here.</pre><div id="entities" class="muted"></div></section>
-<section><h2>2. Ask about the document</h2><label for="question">Your question</label><input id="question" placeholder="What is the total amount due?" maxlength="2000"><div class="actions"><button id="ask">Find answer</button><button id="summary" class="secondary">Summarize</button></div><p id="mode" class="muted">Select a document to begin.</p><div id="answer" aria-live="polite"></div><div id="evidence"></div></section></div>
-<section id="extractor"><h2>3. Extract details</h2><p class="muted">Choose what to pull out of the selected document. Runs on this computer; nothing is sent to Gemini. Check results against the document. Names and organizations are best guesses.</p>
-<div class="toolbar"><button class="secondary" id="selectAll" type="button">Select all</button><button class="secondary" id="clearAll" type="button">Clear</button></div>
-<div class="fields" id="fields" role="group" aria-label="Details to extract"></div>
-<div class="toolbar"><button id="extract">Extract details</button><button class="secondary" id="copy" type="button" hidden>Copy results</button><button class="secondary" id="csv" type="button" hidden>Download CSV</button><label class="inline" id="ssnToggle" hidden><input type="checkbox" id="showSsn"> Show full SSNs</label></div>
-<div class="results" id="results" aria-live="polite"></div></section>
-<div id="status" role="status" aria-live="polite"></div><footer>Images and scanned PDF pages are read on this computer with Tesseract OCR (or Google Cloud Vision if OCR_ENGINE=vision); PDFs with a text layer, Word, and text files are read locally. "Extract details" runs entirely on this computer. For questions and summaries, selected extracted text is sent to Gemini. Extracted text is saved in local SQLite. Original files are not saved. Run locally for personal use.</footer>
+:root {
+  --bg: #f4f6f2;
+  --surface: #ffffff;
+  --surface-2: #f0f3ee;
+  --border: #dde4dc;
+  --text: #14211e;
+  --muted: #5b6d68;
+  --accent: #1d8a66;
+  --accent-strong: #146c4f;
+  --accent-soft: #e2f3ea;
+  --accent-text: #ffffff;
+  --mark: #ffe58a;
+  --mark-active: #ffc83d;
+  --danger: #b4362f;
+  --danger-soft: #fbe9e7;
+  --hero-1: #0d1f1a;
+  --hero-2: #12352b;
+  --hero-text: #eef7f2;
+  --hero-muted: #a9c4b8;
+  --glow: #3ddc97;
+  --shadow: 0 1px 2px rgba(16, 40, 32, .06), 0 8px 24px rgba(16, 40, 32, .07);
+  --radius: 18px;
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1311;
+    --surface: #121d1a;
+    --surface-2: #17241f;
+    --border: #243630;
+    --text: #e6f0ec;
+    --muted: #92a8a0;
+    --accent: #3ddc97;
+    --accent-strong: #5fe8ab;
+    --accent-soft: #173a2d;
+    --accent-text: #06231a;
+    --mark: #5c4b0f;
+    --mark-active: #8a6d0c;
+    --danger: #ff8a80;
+    --danger-soft: #3a1c1a;
+    --hero-1: #07100d;
+    --hero-2: #0f2a21;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); }
+button, input, select { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+.wrap { max-width: 1380px; margin: 0 auto; padding: 0 24px; }
+
+/* Progress bar shown while the server works */
+#progress { position: fixed; inset: 0 0 auto 0; height: 3px; z-index: 50; overflow: hidden; opacity: 0; transition: opacity .2s; }
+#progress::after { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, var(--glow), transparent); animation: slide 1.1s linear infinite; }
+body.busy #progress { opacity: 1; }
+@keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+
+/* Hero */
+.hero { background: radial-gradient(900px 400px at 85% 0%, rgba(61, 220, 151, .18), transparent 60%), linear-gradient(160deg, var(--hero-1), var(--hero-2)); color: var(--hero-text); position: relative; overflow: hidden; }
+.hero::before { content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px); background-size: 36px 36px; mask-image: linear-gradient(to bottom, black, transparent 90%); pointer-events: none; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 0; position: relative; }
+.brand { display: flex; align-items: center; gap: 12px; font-weight: 700; letter-spacing: .3px; }
+.logo { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: linear-gradient(140deg, var(--glow), #1d8a66); color: #04221a; box-shadow: 0 0 24px rgba(61, 220, 151, .35); }
+.status-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.chip-dark { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; font-size: 13px; color: var(--hero-muted); background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #6b7f78; }
+.dot.on { background: var(--glow); box-shadow: 0 0 8px var(--glow); }
+.dot.off { background: #e0a43a; }
+.hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px; align-items: center; padding: 34px 0 64px; position: relative; }
+.eyebrow { text-transform: uppercase; letter-spacing: 2.5px; font-size: 12px; color: var(--glow); font-weight: 600; }
+h1 { font-size: clamp(36px, 5.4vw, 64px); line-height: 1.02; letter-spacing: -2px; margin: 14px 0 18px; }
+h1 em { font-style: normal; background: linear-gradient(90deg, var(--glow), #b8f5d6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lede { font-size: 18px; line-height: 1.6; color: var(--hero-muted); max-width: 540px; margin: 0 0 26px; }
+.features { display: flex; flex-wrap: wrap; gap: 10px; }
+.feature { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; padding: 8px 14px; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09); color: var(--hero-text); }
+.feature svg { color: var(--glow); }
+
+/* Drop zone */
+.drop { position: relative; display: block; border-radius: 24px; padding: 34px 28px 28px; text-align: center; cursor: pointer; background: rgba(255,255,255,.05); border: 1.5px dashed rgba(184, 245, 214, .35); backdrop-filter: blur(6px); transition: border-color .2s, background .2s, transform .2s; }
+.drop:hover, .drop.over { border-color: var(--glow); background: rgba(61, 220, 151, .08); transform: translateY(-2px); }
+.drop:focus-within { outline: 2px solid var(--glow); outline-offset: 4px; }
+.drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.paper { position: relative; width: 132px; height: 164px; margin: 0 auto 22px; border-radius: 12px; background: #f7fbf9; box-shadow: 0 18px 40px rgba(0,0,0,.35); overflow: hidden; transform: rotate(-3deg); transition: transform .3s; }
+.drop:hover .paper { transform: rotate(0deg) scale(1.03); }
+.paper i { position: absolute; left: 16px; height: 7px; border-radius: 4px; background: #d5e2dc; }
+.paper i:nth-child(1) { top: 18px; width: 58px; background: #1d8a66; }
+.paper i:nth-child(2) { top: 38px; width: 96px; }
+.paper i:nth-child(3) { top: 54px; width: 80px; }
+.paper i:nth-child(4) { top: 70px; width: 92px; }
+.paper i:nth-child(5) { top: 96px; width: 44px; }
+.paper i:nth-child(6) { top: 96px; left: 72px; width: 44px; background: #ffd24d; }
+.paper i:nth-child(7) { top: 112px; width: 44px; }
+.paper i:nth-child(8) { top: 112px; left: 72px; width: 44px; background: #ffd24d; }
+.paper i:nth-child(9) { top: 138px; width: 70px; }
+.scan { position: absolute; left: 0; right: 0; top: -20%; height: 34px; background: linear-gradient(to bottom, transparent, rgba(61, 220, 151, .55), transparent); border-bottom: 2px solid var(--glow); animation: scan 2.6s ease-in-out infinite; opacity: .0; transition: opacity .3s; }
+.drop:hover .scan, body.busy .scan { opacity: 1; }
+body.busy .scan { animation-duration: 1.1s; }
+@keyframes scan { 0% { top: -20%; } 50% { top: 100%; } 100% { top: -20%; } }
+.drop strong { display: block; font-size: 19px; margin-bottom: 6px; }
+.drop span { color: var(--hero-muted); font-size: 14px; }
+.drop-actions { display: flex; gap: 10px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+.hero-btn { position: relative; z-index: 1; border: 0; border-radius: 12px; padding: 11px 18px; cursor: pointer; font-weight: 600; background: var(--glow); color: #04221a; transition: transform .15s, box-shadow .15s; }
+.hero-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(61, 220, 151, .35); }
+.hero-btn.ghost { background: rgba(255,255,255,.08); color: var(--hero-text); border: 1px solid rgba(255,255,255,.16); }
+.busy-label { margin-top: 14px; font-size: 14px; color: var(--glow); min-height: 20px; }
+
+/* Workspace */
+main { padding: 34px 0 20px; }
+.workspace { display: grid; grid-template-columns: 260px minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+.workspace > * { min-width: 0; }  /* Long file names must not widen the columns. */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 18px 20px 0; }
+.card-head h2 { font-size: 15px; margin: 0; letter-spacing: .2px; }
+.count { font-size: 12px; color: var(--muted); background: var(--surface-2); border-radius: 999px; padding: 3px 9px; }
+
+/* Library */
+.library { position: sticky; top: 16px; }
+.search { margin: 14px 16px 8px; position: relative; }
+.search input { width: 100%; padding: 10px 12px 10px 36px; border-radius: 11px; border: 1px solid var(--border); background: var(--surface-2); }
+.search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.doc-list { list-style: none; margin: 0; padding: 4px 8px 12px; max-height: 62vh; overflow: auto; }
+.doc-item { width: 100%; display: flex; gap: 11px; align-items: center; text-align: left; border: 0; background: transparent; padding: 10px; border-radius: 12px; cursor: pointer; transition: background .15s; }
+.doc-item:hover { background: var(--surface-2); }
+.doc-item.active { background: var(--accent-soft); }
+.doc-item.active .doc-name { color: var(--accent-strong); }
+.kind { flex: none; width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; font-size: 10.5px; font-weight: 800; letter-spacing: .4px; color: #fff; }
+.kind.PDF { background: linear-gradient(140deg, #e05a4f, #b9342b); }
+.kind.DOCX { background: linear-gradient(140deg, #4a7fe0, #2b56b0); }
+.kind.IMG { background: linear-gradient(140deg, #a86ee0, #7442b0); }
+.kind.TXT { background: linear-gradient(140deg, #7d8c88, #56635f); }
+.kind.DEMO { background: linear-gradient(140deg, #e8a93a, #c27c12); }
+.doc-name { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.doc-sub { font-size: 12px; color: var(--muted); }
+.doc-text { min-width: 0; }
+.empty { color: var(--muted); font-size: 14px; padding: 18px 12px; text-align: center; line-height: 1.6; }
+
+/* Viewer */
+.viewer-head { padding: 22px 24px 0; }
+.viewer-title { display: flex; align-items: flex-start; gap: 14px; }
+.viewer-title h2 { font-size: 22px; margin: 0 0 6px; letter-spacing: -.4px; overflow-wrap: anywhere; }
+.badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.badge { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+.badge.accent { background: var(--accent-soft); color: var(--accent-strong); border-color: transparent; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 18px 0 0; }
+.stat { background: var(--surface-2); border-radius: 13px; padding: 12px 14px; }
+.stat b { display: block; font-size: 20px; letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+.scan-strip { padding: 16px 24px 0; }
+.scan-strip h3, .panel h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1.6px; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.value { border: 1px solid var(--border); background: var(--surface); border-radius: 9px; padding: 6px 10px; font-size: 13.5px; cursor: pointer; transition: border-color .15s, background .15s, transform .1s; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; text-align: left; }
+.value:hover { border-color: var(--accent); background: var(--accent-soft); }
+.value:active { transform: scale(.97); }
+.value.money { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); font-weight: 600; }
+.text-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 18px 24px 10px; }
+.text-tools .hits { font-size: 13px; color: var(--muted); }
+.link-btn { border: 0; background: none; color: var(--accent-strong); cursor: pointer; font-size: 13px; font-weight: 600; padding: 4px 6px; border-radius: 6px; }
+.link-btn:hover { background: var(--accent-soft); }
+pre#text { margin: 0 24px 24px; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--surface-2); border-radius: 14px; padding: 20px; max-height: 620px; overflow: auto; font: 13.5px/1.75 "Cascadia Code", "Consolas", ui-monospace, monospace; }
+mark { background: var(--mark); color: inherit; border-radius: 4px; padding: 1px 2px; transition: background .3s; }
+mark.current { background: var(--mark-active); box-shadow: 0 0 0 2px var(--mark-active); }
+
+/* Side panel */
+.panel { position: sticky; top: 16px; overflow: hidden; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; padding: 6px; gap: 6px; margin: 14px 14px 0; background: var(--surface-2); border-radius: 13px; }
+.tab { border: 0; background: transparent; padding: 9px; border-radius: 9px; cursor: pointer; font-weight: 600; font-size: 14px; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 7px; }
+.tab[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.tab-body { padding: 18px 20px 22px; }
+.field-input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); }
+.field-input:focus, .search input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+.row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.btn { border: 0; border-radius: 11px; padding: 11px 16px; cursor: pointer; font-weight: 600; background: var(--accent); color: var(--accent-text); transition: background .15s, transform .1s; display: inline-flex; align-items: center; gap: 7px; }
+.btn:hover { background: var(--accent-strong); }
+.btn:active { transform: scale(.98); }
+.btn.soft { background: var(--accent-soft); color: var(--accent-strong); }
+.btn.soft:hover { background: color-mix(in srgb, var(--accent-soft) 70%, var(--accent) 30%); }
+.btn:disabled, .value:disabled, .doc-item:disabled, .hero-btn:disabled, .link-btn:disabled { opacity: .55; cursor: wait; }
+.suggest { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.suggest button { border: 1px dashed var(--border); background: transparent; border-radius: 999px; padding: 5px 11px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.suggest button:hover { border-color: var(--accent); color: var(--accent-strong); }
+.mode { font-size: 12.5px; color: var(--muted); margin: 14px 0 0; display: flex; gap: 7px; align-items: center; }
+.answer { margin-top: 16px; padding: 16px 18px; border-radius: 14px; background: linear-gradient(160deg, var(--accent-soft), var(--surface-2)); line-height: 1.65; white-space: pre-wrap; animation: rise .35s ease; }
+.evidence { margin-top: 12px; display: grid; gap: 8px; }
+.quote { text-align: left; border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; line-height: 1.5; cursor: pointer; color: var(--text); }
+.quote small { display: block; color: var(--muted); font-size: 11.5px; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 1px; }
+.quote:hover { background: var(--accent-soft); }
+.fields { display: flex; flex-wrap: wrap; gap: 7px; margin: 4px 0 12px; }
+.toggle { position: relative; }
+.toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.toggle span { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--border); font-size: 13px; cursor: pointer; user-select: none; transition: all .15s; }
+.toggle span::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .15s; }
+.toggle input:checked + span { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-strong); font-weight: 600; }
+.toggle input:checked + span::before { background: var(--accent); }
+.toggle input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mini-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.results { display: grid; gap: 10px; margin-top: 16px; max-height: 52vh; overflow: auto; padding-right: 2px; }
+.result { border: 1px solid var(--border); border-radius: 13px; padding: 12px 14px; animation: rise .3s ease both; }
+.result header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 9px; font-weight: 600; font-size: 14px; }
+.result .none { color: var(--muted); font-size: 13px; margin: 0; }
+.inline { display: inline-flex; gap: 7px; align-items: center; font-size: 13px; color: var(--muted); }
+.note { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin: 0 0 12px; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Welcome state */
+.welcome { text-align: center; padding: 56px 24px; }
+.welcome h2 { font-size: 24px; letter-spacing: -.5px; margin: 0 0 8px; }
+.welcome p { color: var(--muted); max-width: 440px; margin: 0 auto 22px; line-height: 1.6; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; max-width: 640px; margin: 0 auto; }
+.step { background: var(--surface-2); border-radius: 14px; padding: 16px; text-align: left; }
+.step b { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: var(--accent-soft); color: var(--accent-strong); margin-bottom: 10px; font-size: 14px; }
+.step span { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+
+/* Toast */
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 30px); opacity: 0; pointer-events: none; z-index: 60; padding: 12px 18px; border-radius: 13px; background: var(--text); color: var(--bg); font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); transition: transform .25s, opacity .25s; max-width: min(560px, calc(100% - 32px)); }
+#toast.show { transform: translate(-50%, 0); opacity: 1; }
+#toast.error { background: var(--danger); color: #fff; }
+
+footer { padding: 10px 0 40px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+footer .wrap { border-top: 1px solid var(--border); padding-top: 18px; }
+
+@media (max-width: 1100px) {
+  .workspace { grid-template-columns: 240px minmax(0, 1fr); }
+  .panel { grid-column: 1 / -1; position: static; }
+}
+@media (max-width: 760px) {
+  .wrap { padding: 0 16px; }
+  .hero-grid { grid-template-columns: 1fr; gap: 30px; padding-bottom: 44px; }
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+  .hero-grid > * { min-width: 0; }
+  .library { position: static; }
+  pre#text { margin: 0 14px 16px; padding: 14px; }
+  .viewer-head, .scan-strip, .text-tools { padding-left: 16px; padding-right: 16px; }
+  .doc-list { max-height: 260px; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .steps { grid-template-columns: 1fr; }
+  .status-chips .chip-dark:not(:first-child) { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div id="progress" aria-hidden="true"></div>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5M8 10.5h5M10.5 8v5"/></svg>
+        </div>
+        OCR Search Engine
+      </div>
+      <div class="status-chips">
+        <span class="chip-dark"><span class="dot on"></span>Runs on this computer</span>
+        <span class="chip-dark" id="aiChip"><span class="dot" id="aiDot"></span><span id="aiText">Checking Gemini…</span></span>
+      </div>
+    </div>
+
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">Document intelligence</div>
+        <h1>Read any document.<br><em>Find what matters.</em></h1>
+        <p class="lede">Drop in an invoice, receipt, form or scan. Get the text, pull out amounts, dates, names and numbers, and ask questions with the source quoted right beside the answer.</p>
+        <div class="features">
+          <span class="feature"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>PDF · Word · Images · Text</span>
+          <span class="feature"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10"/></svg>Local OCR</span>
+          <span class="feature"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>FCFA, USD, EUR amounts</span>
+        </div>
+      </div>
+
+      <div>
+        <label class="drop" id="drop">
+          <input id="file" type="file" aria-label="Choose a document" accept="image/png,image/jpeg,image/webp,application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.txt,.md,.csv,text/plain">
+          <div class="paper" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div class="scan"></div></div>
+          <strong>Drop a document here</strong>
+          <span>or click to browse · PNG, JPEG, WebP, PDF, DOCX, TXT · up to 10 MB</span>
+          <div class="drop-actions">
+            <button class="hero-btn ghost" id="demo" type="button">Try the sample invoice</button>
+          </div>
+          <div class="busy-label" id="busyLabel" aria-live="polite"></div>
+        </label>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main class="wrap">
+  <div class="workspace">
+    <aside class="card library" aria-label="Saved documents">
+      <div class="card-head"><h2>Library</h2><span class="count" id="docCount">0</span></div>
+      <div class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        <input id="filter" type="search" placeholder="Search documents" aria-label="Search documents">
+      </div>
+      <ul class="doc-list" id="docList"></ul>
+    </aside>
+
+    <section class="card viewer" aria-label="Document">
+      <div id="welcome" class="welcome">
+        <h2>Start with a document</h2>
+        <p>Drop a file in the area above or pick one from your library. Everything you extract can be clicked to see where it comes from in the text.</p>
+        <div class="steps">
+          <div class="step"><b>1</b><span>Add a PDF, Word file, photo or scan.</span></div>
+          <div class="step"><b>2</b><span>Extract amounts, dates, names and more.</span></div>
+          <div class="step"><b>3</b><span>Ask questions and check the quoted source.</span></div>
+        </div>
+      </div>
+
+      <div id="docView" hidden>
+        <div class="viewer-head">
+          <div class="viewer-title">
+            <div class="kind" id="docKind" aria-hidden="true"></div>
+            <div>
+              <h2 id="docName"></h2>
+              <div class="badges" id="docBadges"></div>
+            </div>
+          </div>
+          <div class="stats">
+            <div class="stat"><b id="statWords">0</b><span>words</span></div>
+            <div class="stat"><b id="statLines">0</b><span>lines</span></div>
+            <div class="stat"><b id="statChars">0</b><span>characters</span></div>
+            <div class="stat"><b id="statAmounts">0</b><span>amounts found</span></div>
+          </div>
+        </div>
+        <div class="scan-strip" id="quickScan"></div>
+        <div class="text-tools">
+          <span class="hits" id="hits">Click any value to find it in the text.</span>
+          <span>
+            <button class="link-btn" id="clearMarks" type="button" hidden>Clear highlight</button>
+            <button class="link-btn" id="copyText" type="button">Copy text</button>
+          </span>
+        </div>
+        <pre id="text"></pre>
+      </div>
+    </section>
+
+    <aside class="card panel" aria-label="Tools">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tabExtract" aria-selected="true" aria-controls="paneExtract" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M4 6h16M4 12h10M4 18h6"/></svg>Extract
+        </button>
+        <button class="tab" role="tab" id="tabAsk" aria-selected="false" aria-controls="paneAsk" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z"/></svg>Ask
+        </button>
+      </div>
+
+      <div class="tab-body" id="paneExtract" role="tabpanel" aria-labelledby="tabExtract">
+        <p class="note">Pick the details to pull out. This runs on this computer; nothing is sent to Gemini. Names and organizations are best guesses, so check them against the text.</p>
+        <div class="mini-row">
+          <h3 style="margin:0">Details</h3>
+          <span><button class="link-btn" id="selectAll" type="button">All</button><button class="link-btn" id="clearAll" type="button">None</button></span>
+        </div>
+        <div class="fields" id="fields" role="group" aria-label="Details to extract"></div>
+        <div class="row">
+          <button class="btn" id="extract" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4z"/></svg>Extract details
+          </button>
+          <button class="btn soft" id="copy" type="button" hidden>Copy</button>
+          <button class="btn soft" id="csv" type="button" hidden>CSV</button>
+        </div>
+        <label class="inline" id="ssnToggle" hidden style="margin-top:12px"><input type="checkbox" id="showSsn"> Show full SSNs</label>
+        <div class="results" id="results" aria-live="polite"></div>
+      </div>
+
+      <div class="tab-body" id="paneAsk" role="tabpanel" aria-labelledby="tabAsk" hidden>
+        <label for="question" class="note" style="display:block;margin-bottom:8px">Ask anything about the selected document.</label>
+        <input id="question" class="field-input" placeholder="What is the total amount due?" maxlength="2000">
+        <div class="row">
+          <button class="btn" id="ask" type="button">Find answer</button>
+          <button class="btn soft" id="summary" type="button">Summarize</button>
+        </div>
+        <div class="suggest" id="suggest">
+          <button type="button">What is the total?</button>
+          <button type="button">When is payment due?</button>
+          <button type="button">Who is the customer?</button>
+          <button type="button">Who issued this document?</button>
+        </div>
+        <p class="mode" id="mode">Select a document to begin.</p>
+        <div id="answerBox" hidden>
+          <div class="answer" id="answer" aria-live="polite"></div>
+          <div class="evidence" id="evidence"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">Images and scanned PDF pages are read on this computer with Tesseract OCR (or Google Cloud Vision if OCR_ENGINE=vision); PDFs with a text layer, Word, and text files are read locally. "Extract details" runs entirely on this computer. For questions and summaries, selected extracted text is sent to Gemini. Extracted text is saved in local SQLite. Original files are not saved. Run locally for personal use.</div>
+</footer>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
 <script>
-const $=id=>document.getElementById(id);let selected='';
-async function api(path,options={}){const r=await fetch(path,options);const data=await r.json();if(!r.ok)throw Error(typeof data.detail==='string'?data.detail:JSON.stringify(data.detail));return data}
-function post(path,body){return api(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
-async function busy(task){document.querySelectorAll('button').forEach(b=>b.disabled=true);$('status').textContent='Working…';try{await task();$('status').textContent='Done.'}catch(e){$('status').textContent=e.message}finally{document.querySelectorAll('button').forEach(b=>b.disabled=false)}}
-async function refresh(){const docs=await api('/api/documents');$('documents').replaceChildren(new Option('Select a document',''));docs.forEach(d=>$('documents').add(new Option(d.name+(d.mode==='demo'?' · sample':''),d.id)));$('documents').value=selected}
-let aiReady=false;
-function modeText(doc){return doc.mode==='demo'?'SAMPLE MODE · Fixed answers, no AI call':aiReady?'AI MODE · Answers generated with Gemini':'AI answers need a Gemini key: set GEMINI_API_KEY in .env and restart.'}
-function quickScan(e){const parts=[];if(e.emails.length)parts.push('Emails: '+e.emails.join(', '));if(e.amounts.length)parts.push('Amounts: '+e.amounts.join(', '));return parts.length?'Quick scan · '+parts.join(' · '):'Quick scan · No emails or amounts found. Use Extract details below for more.'}
-function show(doc){selected=doc.id;$('text').textContent=doc.text;$('mode').textContent=modeText(doc);$('entities').textContent=quickScan(doc.entities);$('answer').textContent='';$('evidence').replaceChildren()}
-function showAnswer(result){$('answer').textContent=result.answer;$('mode').textContent=(result.mode==='demo'?'SAMPLE MODE':'AI MODE')+' · '+result.seconds+' seconds';$('evidence').replaceChildren();for(const e of result.evidence){const b=document.createElement('blockquote');b.textContent='Source chunk '+e.chunk_id+' — '+e.quote;$('evidence').append(b)}}
-$('upload').onclick=()=>busy(async()=>{if(!$('file').files[0])throw Error('Choose a file first.');const form=new FormData();form.append('file',$('file').files[0]);show(await api('/api/documents',{method:'POST',body:form}));await refresh()});
-$('demo').onclick=()=>busy(async()=>{show(await post('/api/demo',{}));await refresh()});
-$('documents').onchange=()=>busy(async()=>{if(!$('documents').value){selected='';$('text').textContent='Select a document.';$('answer').textContent='';$('evidence').replaceChildren();$('mode').textContent='Select a document to begin.';$('entities').textContent='';return}show(await api('/api/documents/'+$('documents').value))});
-$('ask').onclick=()=>busy(async()=>{if(!selected)throw Error('Select a document first.');if(!$('question').value.trim())throw Error('Enter a question.');showAnswer(await post('/api/ask',{document_id:selected,question:$('question').value}))});
-$('summary').onclick=()=>busy(async()=>{if(!selected)throw Error('Select a document first.');showAnswer(await post('/api/summarize',{document_id:selected}))});
-let extracted=null;
-const maskSsn=v=>'***-**-'+v.slice(-4);
-const shown=(key,v)=>key==='ssns'&&!$('showSsn').checked?maskSsn(v):v;
-function checked(){return[...document.querySelectorAll('#fields input:checked')].map(i=>i.value)}
-function saveChoice(){try{localStorage.setItem('extractFields',JSON.stringify(checked()))}catch(e){}}
-async function loadFields(){const data=await api('/api/fields');let saved=['emails','phones','amounts','dates'];try{saved=JSON.parse(localStorage.getItem('extractFields'))||saved}catch(e){}
-$('fields').replaceChildren(...data.fields.map(f=>{const l=document.createElement('label'),i=document.createElement('input');i.type='checkbox';i.value=f.key;i.checked=saved.includes(f.key);i.onchange=saveChoice;l.append(i,f.label);return l}))}
-function clearResults(){extracted=null;$('results').replaceChildren();$('copy').hidden=$('csv').hidden=$('ssnToggle').hidden=true}
-function renderResults(){$('results').replaceChildren();if(!extracted)return;for(const[key,r]of Object.entries(extracted.results)){const box=document.createElement('div'),h=document.createElement('h3'),n=document.createElement('span');box.className='result';n.textContent=r.values.length+' found';h.append(r.label,n);box.append(h);
-if(r.values.length){const ul=document.createElement('ul');for(const v of r.values){const li=document.createElement('li');li.textContent=shown(key,v);ul.append(li)}box.append(ul)}else{const p=document.createElement('p');p.className='none';p.textContent='None found';box.append(p)}$('results').append(box)}
-$('copy').hidden=$('csv').hidden=false;$('ssnToggle').hidden=!('ssns'in extracted.results&&extracted.results.ssns.values.length)}
-function rows(){return Object.entries(extracted.results).flatMap(([key,r])=>r.values.map(v=>[r.label,shown(key,v)]))}
-$('selectAll').onclick=()=>{document.querySelectorAll('#fields input').forEach(i=>i.checked=true);saveChoice()};
-$('clearAll').onclick=()=>{document.querySelectorAll('#fields input').forEach(i=>i.checked=false);saveChoice()};
-$('showSsn').onchange=renderResults;
-$('extract').onclick=()=>busy(async()=>{if(!selected)throw Error('Select a document first.');const fields=checked();if(!fields.length)throw Error('Choose at least one detail to extract.');$('showSsn').checked=false;extracted=await post('/api/extract',{document_id:selected,fields});renderResults()});
-$('copy').onclick=()=>busy(async()=>{const text=Object.entries(extracted.results).map(([key,r])=>r.label+':\n'+(r.values.length?r.values.map(v=>'  '+shown(key,v)).join('\n'):'  (none)')).join('\n\n');await navigator.clipboard.writeText(text)});
-$('csv').onclick=()=>{const q=s=>'"'+String(s).replace(/"/g,'""')+'"';const csv=[['Detail','Value'],...rows()].map(r=>r.map(q).join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'}));a.download='extracted-details.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
-const baseShow=show;show=doc=>{baseShow(doc);clearResults()};
-$('documents').addEventListener('change',()=>{if(!$('documents').value)clearResults()});
-api('/api/health').then(h=>{aiReady=h.ai_configured}).catch(()=>{});
-loadFields().catch(e=>$('status').textContent=e.message);
-refresh().catch(e=>$('status').textContent=e.message);
-</script></body></html>
+const $ = id => document.getElementById(id);
+let selected = '', current = null, docs = [], extracted = null, aiReady = false, toastTimer = 0;
+const CURRENCY_SUFFIX = /\s+(?:USD|EUR|GBP|XOF|XAF|FCFA|GNF|NGN|GHS|CAD|CHF|MAD)$/;
+
+async function api(path, options = {}) {
+  const r = await fetch(path, options);
+  const data = await r.json();
+  if (!r.ok) throw Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail));
+  return data;
+}
+function post(path, body) {
+  return api(path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+}
+function toast(message, error = false) {
+  const t = $('toast');
+  t.textContent = message;
+  t.className = 'show' + (error ? ' error' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = error ? 'error' : '', error ? 6000 : 2200);
+}
+async function busy(task, label = 'Working…', done = '') {
+  document.querySelectorAll('button, #file').forEach(b => b.disabled = true);
+  document.body.classList.add('busy');
+  $('busyLabel').textContent = label;
+  try {
+    await task();
+    if (done) toast(done);
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    document.querySelectorAll('button, #file').forEach(b => b.disabled = false);
+    document.body.classList.remove('busy');
+    $('busyLabel').textContent = '';
+  }
+}
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function kindOf(name, mode) {
+  if (mode === 'demo') return 'DEMO';
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  if (ext === 'pdf') return 'PDF';
+  if (ext === 'docx') return 'DOCX';
+  if (['txt', 'md', 'csv'].includes(ext)) return 'TXT';
+  return 'IMG';
+}
+const KIND_LABEL = {PDF: 'PDF document', DOCX: 'Word document', TXT: 'Text file', IMG: 'Image · OCR', DEMO: 'Sample'};
+
+/* Library */
+async function refresh() {
+  docs = await api('/api/documents');
+  renderLibrary();
+}
+function renderLibrary() {
+  const q = $('filter').value.trim().toLowerCase();
+  const list = docs.filter(d => d.name.toLowerCase().includes(q));
+  $('docCount').textContent = docs.length;
+  if (!list.length) {
+    $('docList').replaceChildren(el('li', 'empty', docs.length ? 'No documents match.' : 'Nothing here yet. Drop a file above or try the sample invoice.'));
+    return;
+  }
+  $('docList').replaceChildren(...list.map(d => {
+    const li = el('li'), b = el('button', 'doc-item' + (d.id === selected ? ' active' : ''));
+    const k = kindOf(d.name, d.mode), t = el('span', 'doc-text');
+    b.type = 'button';
+    b.onclick = () => busy(async () => show(await api('/api/documents/' + d.id)), 'Opening…');
+    t.append(el('span', 'doc-name', d.name), el('span', 'doc-sub', KIND_LABEL[k]));
+    b.title = d.name;
+    b.append(el('span', 'kind ' + k, k === 'DEMO' ? 'DEMO' : k), t);
+    li.append(b);
+    return li;
+  }));
+}
+$('filter').oninput = renderLibrary;
+
+/* Document view and highlighting */
+function show(doc) {
+  current = doc;
+  selected = doc.id;
+  $('welcome').hidden = true;
+  $('docView').hidden = false;
+  const k = kindOf(doc.name, doc.mode);
+  $('docKind').className = 'kind ' + k;
+  $('docKind').textContent = k;
+  $('docName').textContent = doc.name;
+  const badges = [el('span', 'badge accent', KIND_LABEL[k])];
+  if (doc.ocr_seconds !== undefined) badges.push(el('span', 'badge', 'Read in ' + doc.ocr_seconds + ' s'));
+  if (doc.mode === 'demo') badges.push(el('span', 'badge', 'Fictional data'));
+  $('docBadges').replaceChildren(...badges);
+  const text = doc.text || '';
+  $('statWords').textContent = (text.match(/\S+/g) || []).length.toLocaleString();
+  $('statLines').textContent = text.split('\n').length.toLocaleString();
+  $('statChars').textContent = text.length.toLocaleString();
+  $('statAmounts').textContent = doc.entities.amounts.length;
+  renderQuickScan(doc.entities);
+  renderText();
+  $('mode').textContent = modeText(doc);
+  $('answerBox').hidden = true;
+  clearResults();
+  renderLibrary();
+}
+function renderQuickScan(e) {
+  const box = $('quickScan');
+  box.replaceChildren();
+  const groups = [['Amounts', e.amounts, 'money'], ['Emails', e.emails, '']].filter(g => g[1].length);
+  if (!groups.length) {
+    box.append(el('h3', '', 'Quick scan'), el('p', 'note', 'No amounts or emails spotted. Use Extract for more details.'));
+    return;
+  }
+  box.append(el('h3', '', 'Quick scan'));
+  const chips = el('div', 'chips');
+  for (const [, values, cls] of groups) for (const v of values) chips.append(valueButton(v, v, cls));
+  box.append(chips);
+}
+function valueButton(label, find, cls = '') {
+  const b = el('button', 'value' + (cls ? ' ' + cls : ''), label);
+  b.type = 'button';
+  b.title = 'Find in text';
+  b.onclick = () => highlight([find]);
+  return b;
+}
+function pattern(value) {
+  const variants = [value.trim()];
+  const bare = variants[0].replace(CURRENCY_SUFFIX, '');
+  if (bare !== variants[0]) variants.push(bare);
+  return variants.map(v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '[\\s\\u00a0\\u202f]+'));
+}
+function renderText(values = []) {
+  const pre = $('text'), text = current ? current.text : '';
+  const parts = values.flatMap(pattern).filter(Boolean);
+  if (!parts.length) {
+    pre.textContent = text;
+    $('hits').textContent = 'Click any value to find it in the text.';
+    $('clearMarks').hidden = true;
+    return 0;
+  }
+  const pieces = text.split(new RegExp('(' + parts.join('|') + ')', 'gi'));
+  pre.replaceChildren(...pieces.map((p, i) => i % 2 ? el('mark', '', p) : document.createTextNode(p)));
+  const marks = pre.querySelectorAll('mark');
+  $('clearMarks').hidden = false;
+  $('hits').textContent = marks.length ? marks.length + (marks.length === 1 ? ' match' : ' matches') + ' in the text' : 'Not found word for word in the text';
+  if (marks.length) {
+    marks[0].classList.add('current');
+    const top = marks[0].offsetTop - pre.offsetTop - pre.clientHeight / 3;
+    pre.scrollTo({top: Math.max(0, top), behavior: 'smooth'});
+    const r = pre.getBoundingClientRect();
+    if (r.top < 0 || r.top > innerHeight - 120) pre.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+  return marks.length;
+}
+function highlight(values) { renderText(values); }
+$('clearMarks').onclick = () => renderText();
+$('copyText').onclick = async () => {
+  if (!current) return;
+  try { await navigator.clipboard.writeText(current.text); toast('Text copied'); } catch (e) { toast('Could not copy: ' + e.message, true); }
+};
+
+/* Upload */
+function upload(file) {
+  if (!file) return;
+  busy(async () => {
+    const form = new FormData();
+    form.append('file', file);
+    show(await api('/api/documents', {method: 'POST', body: form}));
+    await refresh();
+    document.querySelector('.workspace').scrollIntoView({behavior: 'smooth', block: 'start'});
+  }, 'Reading ' + file.name + '…', 'Text extracted from ' + file.name);
+}
+$('file').onchange = () => { upload($('file').files[0]); $('file').value = ''; };
+const drop = $('drop');
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove('over')));
+drop.addEventListener('drop', e => { e.preventDefault(); upload(e.dataTransfer.files[0]); });
+$('demo').onclick = e => {
+  e.preventDefault();  // The button sits inside the drop zone label; do not open the file picker.
+  busy(async () => {
+    show(await post('/api/demo', {}));
+    await refresh();
+    document.querySelector('.workspace').scrollIntoView({behavior: 'smooth', block: 'start'});
+  }, 'Loading the sample…', 'Sample invoice loaded');
+};
+
+/* Tabs */
+function selectTab(name) {
+  for (const [tab, pane] of [['tabExtract', 'paneExtract'], ['tabAsk', 'paneAsk']]) {
+    const on = tab === name;
+    $(tab).setAttribute('aria-selected', on);
+    $(pane).hidden = !on;
+  }
+}
+$('tabExtract').onclick = () => selectTab('tabExtract');
+$('tabAsk').onclick = () => selectTab('tabAsk');
+
+/* Ask */
+function modeText(doc) {
+  return doc.mode === 'demo' ? 'Sample mode · fixed answers, no AI call'
+    : aiReady ? 'AI mode · answers generated with Gemini'
+    : 'AI answers need a Gemini key: set GEMINI_API_KEY in .env and restart.';
+}
+function showAnswer(result) {
+  $('answerBox').hidden = false;
+  $('answer').textContent = result.answer;
+  $('mode').textContent = (result.mode === 'demo' ? 'Sample mode' : 'AI mode') + ' · ' + result.seconds + ' s';
+  $('evidence').replaceChildren(...result.evidence.map(e => {
+    const b = el('button', 'quote');
+    b.type = 'button';
+    b.title = 'Show in text';
+    b.append(el('small', '', 'Source · chunk ' + e.chunk_id), document.createTextNode(e.quote));
+    b.onclick = () => highlight([e.quote]);
+    return b;
+  }));
+  if (result.evidence.length) highlight(result.evidence.map(e => e.quote));
+}
+function ask() {
+  busy(async () => {
+    if (!selected) throw Error('Select a document first.');
+    if (!$('question').value.trim()) throw Error('Enter a question.');
+    showAnswer(await post('/api/ask', {document_id: selected, question: $('question').value}));
+  }, 'Finding the answer…');
+}
+$('ask').onclick = ask;
+$('question').onkeydown = e => { if (e.key === 'Enter') ask(); };
+$('summary').onclick = () => busy(async () => {
+  if (!selected) throw Error('Select a document first.');
+  showAnswer(await post('/api/summarize', {document_id: selected}));
+}, 'Summarizing…');
+$('suggest').querySelectorAll('button').forEach(b => b.onclick = () => { $('question').value = b.textContent; ask(); });
+
+/* Extract */
+const maskSsn = v => '***-**-' + v.slice(-4);
+const shown = (key, v) => key === 'ssns' && !$('showSsn').checked ? maskSsn(v) : v;
+function checked() { return [...document.querySelectorAll('#fields input:checked')].map(i => i.value); }
+function saveChoice() { try { localStorage.setItem('extractFields', JSON.stringify(checked())); } catch (e) {} }
+async function loadFields() {
+  const data = await api('/api/fields');
+  let saved = ['emails', 'phones', 'amounts', 'dates'];
+  try { saved = JSON.parse(localStorage.getItem('extractFields')) || saved; } catch (e) {}
+  $('fields').replaceChildren(...data.fields.map(f => {
+    const l = el('label', 'toggle'), i = el('input');
+    i.type = 'checkbox';
+    i.value = f.key;
+    i.checked = saved.includes(f.key);
+    i.onchange = saveChoice;
+    l.append(i, el('span', '', f.label));
+    return l;
+  }));
+}
+function clearResults() {
+  extracted = null;
+  $('results').replaceChildren();
+  $('copy').hidden = $('csv').hidden = $('ssnToggle').hidden = true;
+}
+function renderResults() {
+  $('results').replaceChildren();
+  if (!extracted) return;
+  let delay = 0;
+  for (const [key, r] of Object.entries(extracted.results)) {
+    const box = el('div', 'result'), head = el('header');
+    box.style.animationDelay = (delay += 40) + 'ms';
+    head.append(el('span', '', r.label), el('span', 'count', r.values.length + ' found'));
+    box.append(head);
+    if (r.values.length) {
+      const chips = el('div', 'chips');
+      for (const v of r.values) chips.append(valueButton(shown(key, v), v, key === 'amounts' ? 'money' : ''));
+      box.append(chips);
+    } else {
+      box.append(el('p', 'none', 'None found'));
+    }
+    $('results').append(box);
+  }
+  $('copy').hidden = $('csv').hidden = false;
+  $('ssnToggle').hidden = !('ssns' in extracted.results && extracted.results.ssns.values.length);
+}
+function rows() { return Object.entries(extracted.results).flatMap(([key, r]) => r.values.map(v => [r.label, shown(key, v)])); }
+$('selectAll').onclick = () => { document.querySelectorAll('#fields input').forEach(i => i.checked = true); saveChoice(); };
+$('clearAll').onclick = () => { document.querySelectorAll('#fields input').forEach(i => i.checked = false); saveChoice(); };
+$('showSsn').onchange = renderResults;
+$('extract').onclick = () => busy(async () => {
+  if (!selected) throw Error('Select a document first.');
+  const fields = checked();
+  if (!fields.length) throw Error('Choose at least one detail to extract.');
+  $('showSsn').checked = false;
+  extracted = await post('/api/extract', {document_id: selected, fields});
+  renderResults();
+  const total = Object.values(extracted.results).reduce((n, r) => n + r.values.length, 0);
+  toast(total + (total === 1 ? ' detail' : ' details') + ' found in ' + extracted.seconds + ' s');
+}, 'Extracting details…');
+$('copy').onclick = () => busy(async () => {
+  const text = Object.entries(extracted.results).map(([key, r]) => r.label + ':\n' + (r.values.length ? r.values.map(v => '  ' + shown(key, v)).join('\n') : '  (none)')).join('\n\n');
+  await navigator.clipboard.writeText(text);
+}, 'Copying…', 'Results copied');
+$('csv').onclick = () => {
+  const q = s => '"' + String(s).replace(/"/g, '""') + '"';
+  const csv = [['Detail', 'Value'], ...rows()].map(r => r.map(q).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + csv], {type: 'text/csv'}));
+  a.download = 'extracted-details.csv';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+
+/* Startup */
+api('/api/health').then(h => {
+  aiReady = h.ai_configured;
+  $('aiDot').className = 'dot ' + (aiReady ? 'on' : 'off');
+  $('aiText').textContent = aiReady ? 'Gemini connected' : 'Gemini not set up';
+  if (current) $('mode').textContent = modeText(current);
+}).catch(() => { $('aiText').textContent = 'Server unreachable'; });
+loadFields().catch(e => toast(e.message, true));
+refresh().catch(e => toast(e.message, true));
+</script>
+</body>
+</html>

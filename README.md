@@ -16,15 +16,17 @@ Turn images, PDFs, and Word documents into searchable text, then pull out exactl
 - **Many input formats.** PNG, JPEG, and WebP images; PDFs (up to 30 pages); Word `.docx`; and plain text. PDFs that already contain text are read directly, so only scanned pages go through OCR.
 - **Local OCR.** [Tesseract](https://github.com/tesseract-ocr/tesseract) by default, no account or key needed. Google Cloud Vision is available as an option. Images are cleaned up with OpenCV first (orientation, grayscale, smoothing).
 - **Choose what to extract.** Tick any of 10 detail types: emails, phone numbers, money amounts, dates, invoice/order/account numbers, all numbers, people's names, organizations, street addresses, and SSNs. Copy the results or download them as CSV.
+- **International amounts.** Recognizes `$1,234.56` as well as `10 760 000 FCFA`, `18 877,18 USD` and `1.800,50 EUR`. PDF tables keep their columns (`5 760 000 | 10 105,26`), and a column headed with a currency such as "Montant (FCFA)" is read as money while quantity columns are not.
+- **Click to find.** Every amount, extracted detail and answer quote can be clicked to highlight it in the document text.
 - **Privacy by default.** SSNs are masked on screen (`***-**-4320`) until you choose to reveal them. Extraction never leaves your machine.
 - **Questions with evidence.** Ask "What is the total due?" and Gemini answers using only the document, citing verbatim quotes. Answers whose quotes can't be found in the text are rejected.
 - **REST API.** Every feature is available over a documented FastAPI API, served over HTTPS on localhost.
-- **Tested.** 17 automated tests run on every push, including one against the real Tesseract engine.
+- **Tested.** 18 automated tests run on every push, including one against the real Tesseract engine.
 
 <details>
 <summary>Full-page screenshot</summary>
 
-![The whole app: upload panel, question panel, and extract details panel](docs/screenshot-full.png)
+![The whole app: drop zone, document library, the sample invoice with an amount highlighted in its text, and the extract details panel](docs/screenshot-full.png)
 
 </details>
 
@@ -82,6 +84,8 @@ flowchart LR
    ```bash
    python app/main.py
    ```
+
+   On Windows you can instead double-click **`start.bat`**. It sets up `.venv` on first run, starts the server, and opens the browser. Closing its window stops the server.
 
    Open **https://127.0.0.1:8000/**. On first start the app creates a self-signed certificate in `certs/`, so the browser warns once: choose **Advanced**, then **Continue**. API documentation is at https://127.0.0.1:8000/docs.
 
