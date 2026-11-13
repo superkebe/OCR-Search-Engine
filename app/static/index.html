@@ -205,6 +205,7 @@ mark.current { background: var(--mark-active); box-shadow: 0 0 0 2px var(--mark-
 .btn { border: 0; border-radius: 11px; padding: 11px 16px; cursor: pointer; font-weight: 600; background: var(--accent); color: var(--accent-text); transition: background .15s, transform .1s; display: inline-flex; align-items: center; gap: 7px; }
 .btn:hover { background: var(--accent-strong); }
 .btn:active { transform: scale(.98); }
+.btn-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
 .btn.soft { background: var(--accent-soft); color: var(--accent-strong); }
 .btn.soft:hover { background: color-mix(in srgb, var(--accent-soft) 70%, var(--accent) 30%); }
 .btn:disabled, .value:disabled, .doc-item:disabled, .hero-btn:disabled, .link-btn:disabled { opacity: .55; cursor: wait; }
@@ -393,7 +394,7 @@ footer .wrap { border-top: 1px solid var(--border); padding-top: 18px; }
         <div class="fields" id="fields" role="group" aria-label="Details to extract"></div>
         <div class="row">
           <button class="btn" id="extract" type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4z"/></svg>Extract details
+            <span class="btn-dot" aria-hidden="true"></span>Extract details
           </button>
           <button class="btn soft" id="copy" type="button" hidden>Copy</button>
           <button class="btn soft" id="csv" type="button" hidden>CSV</button>
